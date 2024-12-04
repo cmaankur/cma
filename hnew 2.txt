@@ -1,0 +1,484 @@
+<?php
+require($_SERVER['DOCUMENT_ROOT'].'/CAFC/db.php');
+include($_SERVER['DOCUMENT_ROOT']."/CAFC/auth.php");
+require_once($_SERVER['DOCUMENT_ROOT']."/CAFC/function_library.php");
+
+$table_name = "tr_pay_age_data";
+$unitname = $_SESSION['unitname'];
+$fiscal = $_SESSION['fiscal'];
+$unitfilter = fn_unitfilter($_SESSION['unitname']);
+
+// Resolving reporting period & dates through other script
+include("fs_period_resolution.php");
+
+$q = "
+WITH 
+cte1_b AS (
+    SELECT 
+        a.glcode AS glcode,
+        a.cb AS cb,
+        a.fiscal AS fiscal,
+        a.unitname AS unitname,
+        b.pg_code, b.pgdesc,
+        'TRIALBAL' AS source_det
+    FROM
+        tbalance a
+    LEFT JOIN coa_with_grouping b ON a.glcode = b.glcode
+    WHERE
+        a.fiscal = '$fiscal'
+        AND a.unitname LIKE '$unitfilter'
+        AND b.pg_code LIKE 'PL%'
+    UNION ALL
+    SELECT 
+        rce_all_2.glcode AS glcode,
+        rce_all_2.cb AS cb,
+        rce_all_2.fiscal AS fiscal,
+        rce_all_2.unitname AS unitname,
+        rce_all_2.pg_code, rce_all_2.pgdesc,
+        'RECLASS' AS source_det
+    FROM
+        rce_all_2
+    WHERE
+        rce_all_2.fiscal = '$fiscal'
+        AND rce_all_2.unitname LIKE '$unitfilter'
+        AND rce_all_2.pg_code LIKE 'PL%'
+),
+cte2_b AS (
+    SELECT 
+        a.glcode AS glcode,
+        a.cb AS cb,
+        a.fiscal AS fiscal,
+        a.unitname AS unitname,
+        b.pg_code, b.pgdesc,
+        'TRIALBAL' AS source_det
+    FROM
+        tbalance a
+    LEFT JOIN coa_with_grouping b ON a.glcode = b.glcode
+    WHERE
+        a.fiscal = '$prev_ytd_fiscal'
+        AND a.unitname LIKE '$unitfilter'
+        AND b.pg_code LIKE 'PL%'
+    UNION ALL
+    SELECT 
+        rce_all_2.glcode AS glcode,
+        rce_all_2.cb AS cb,
+        rce_all_2.fiscal AS fiscal,
+        rce_all_2.unitname AS unitname,
+        rce_all_2.pg_code, rce_all_2.pgdesc,
+        'RECLASS' AS source_det
+    FROM
+        rce_all_2
+    WHERE
+        rce_all_2.fiscal = '$prev_ytd_fiscal'
+        AND rce_all_2.unitname LIKE '$unitfilter'
+        AND rce_all_2.pg_code LIKE 'PL%'
+),
+cte3_b AS (
+    SELECT 
+        a.glcode AS glcode,
+        a.cb AS cb,
+        a.fiscal AS fiscal,
+        a.unitname AS unitname,
+        b.pg_code, b.pgdesc,
+        'TRIALBAL' AS source_det
+    FROM
+        tbalance a
+    LEFT JOIN coa_with_grouping b ON a.glcode = b.glcode
+    WHERE
+        a.fiscal = '$preceding_ytd_fiscal'
+        AND a.unitname LIKE '$unitfilter'
+        AND b.pg_code LIKE 'PL%'
+    UNION ALL
+    SELECT 
+        rce_all_2.glcode AS glcode,
+        rce_all_2.cb AS cb,
+        rce_all_2.fiscal AS fiscal,
+        rce_all_2.unitname AS unitname,
+        rce_all_2.pg_code, rce_all_2.pgdesc,
+        'RECLASS' AS source_det
+    FROM
+        rce_all_2
+    WHERE
+        rce_all_2.fiscal = '$preceding_ytd_fiscal'
+        AND rce_all_2.unitname LIKE '$unitfilter'
+        AND rce_all_2.pg_code LIKE 'PL%'
+),
+cte4_b AS (
+    SELECT 
+        a.glcode AS glcode,
+        a.cb AS cb,
+        a.fiscal AS fiscal,
+        a.unitname AS unitname,
+        b.pg_code, b.pgdesc,
+        'TRIALBAL' AS source_det
+    FROM
+        tbalance a
+    LEFT JOIN coa_with_grouping b ON a.glcode = b.glcode
+    WHERE
+        a.fiscal = '$prev_fy_fiscal'
+        AND a.unitname LIKE '$unitfilter'
+        AND b.pg_code LIKE 'PL%'
+    UNION ALL
+    SELECT 
+        rce_all_2.glcode AS glcode,
+        rce_all_2.cb AS cb,
+        rce_all_2.fiscal AS fiscal,
+        rce_all_2.unitname AS unitname,
+        rce_all_2.pg_code, rce_all_2.pgdesc,
+        'RECLASS' AS source_det
+    FROM
+        rce_all_2
+    WHERE
+        rce_all_2.fiscal = '$prev_fy_fiscal'
+        AND rce_all_2.unitname LIKE '$unitfilter'
+        AND rce_all_2.pg_code LIKE 'PL%'
+),
+cte5_b AS (
+    SELECT 
+        a.glcode AS glcode,
+        a.cb AS cb,
+        a.fiscal AS fiscal,
+        a.unitname AS unitname,
+        b.pg_code, b.pgdesc,
+        'TRIALBAL' AS source_det
+    FROM
+        tbalance a
+    LEFT JOIN coa_with_grouping b ON a.glcode = b.glcode
+    WHERE
+        a.fiscal = '$preceding_2_ytd_fiscal'
+        AND a.unitname LIKE '$unitfilter'
+        AND b.pg_code LIKE 'PL%'
+    UNION ALL
+    SELECT 
+        rce_all_2.glcode AS glcode,
+        rce_all_2.cb AS cb,
+        rce_all_2.fiscal AS fiscal,
+        rce_all_2.unitname AS unitname,
+        rce_all_2.pg_code, rce_all_2.pgdesc,
+        'RECLASS' AS source_det
+    FROM
+        rce_all_2
+    WHERE
+        rce_all_2.fiscal = '$preceding_2_ytd_fiscal'
+        AND rce_all_2.unitname LIKE '$unitfilter'
+        AND rce_all_2.pg_code LIKE 'PL%'
+),
+cte6_b AS (
+    SELECT 
+        a.glcode AS glcode,
+        a.cb AS cb,
+        a.fiscal AS fiscal,
+        a.unitname AS unitname,
+        b.pg_code, b.pgdesc,
+        'TRIALBAL' AS source_det
+    FROM
+        tbalance a
+    LEFT JOIN coa_with_grouping b ON a.glcode = b.glcode
+    WHERE
+        a.fiscal = '$prev_preceding_ytd_fiscal'
+        AND a.unitname LIKE '$unitfilter'
+        AND b.pg_code LIKE 'PL%'
+    UNION ALL
+    SELECT 
+        rce_all_2.glcode AS glcode,
+        rce_all_2.cb AS cb,
+        rce_all_2.fiscal AS fiscal,
+        rce_all_2.unitname AS unitname,
+        rce_all_2.pg_code, rce_all_2.pgdesc,
+        'RECLASS' AS source_det
+    FROM
+        rce_all_2
+    WHERE
+        rce_all_2.fiscal = '$prev_preceding_ytd_fiscal'
+        AND rce_all_2.unitname LIKE '$unitfilter'
+        AND rce_all_2.pg_code LIKE 'PL%'
+),
+
+cte1 AS (
+    SELECT 
+        pg_code, pgdesc, ROUND(sum(cb), 0) amt_curr_ytd
+    FROM cte1_b
+    WHERE fiscal = '$fiscal' AND unitname LIKE '$unitfilter'
+    AND pg_code LIKE 'PL%'
+    GROUP BY pg_code, pgdesc
+),
+cte2 AS (
+    SELECT 
+        pg_code, ROUND(sum(cb), 0) amt_prev_ytd
+    FROM cte2_b
+    WHERE fiscal = '$prev_ytd_fiscal' AND unitname LIKE '$unitfilter'
+    AND pg_code LIKE 'PL%'
+    GROUP BY pg_code, pgdesc
+),
+cte3 AS (
+    SELECT 
+        pg_code, ROUND(sum(cb), 0) amt_prec_ytd
+    FROM cte3_b
+    WHERE fiscal = '$preceding_ytd_fiscal' AND unitname LIKE '$unitfilter'
+    AND pg_code LIKE 'PL%'
+    GROUP BY pg_code, pgdesc
+),
+cte4 AS (
+    SELECT 
+        pg_code, ROUND(sum(cb), 0) amt_prev_fy
+    FROM cte4_b
+    WHERE fiscal = '$prev_fy_fiscal' AND unitname LIKE '$unitfilter'
+    AND pg_code LIKE 'PL%'
+    GROUP BY pg_code, pgdesc
+),
+cte5 AS (
+    SELECT 
+        pg_code, ROUND(sum(cb), 0) amt_prec_2_ytd
+    FROM cte5_b
+    WHERE fiscal = '$preceding_2_ytd_fiscal' AND unitname LIKE '$unitfilter'
+    AND pg_code LIKE 'PL%'
+    GROUP BY pg_code, pgdesc
+),
+cte6 AS (
+    SELECT 
+        pg_code, ROUND(sum(cb), 0) amt_prev_prec_ytd
+    FROM cte6_b
+    WHERE fiscal = '$prev_preceding_ytd_fiscal' AND unitname LIKE '$unitfilter'
+    AND pg_code LIKE 'PL%'
+    GROUP BY pg_code, pgdesc
+),
+cte7 AS (
+    SELECT 
+        pg_code, description AS pgdesc
+    FROM primary_grouping
+    WHERE pg_code LIKE 'PL%'
+)
+
+SELECT  
+    cte7.pg_code, cte7.pgdesc,
+    cte1.amt_curr_ytd, cte2.amt_prev_ytd,
+    cte3.amt_prec_ytd, cte4.amt_prev_fy,
+    (IFNULL(cte1.amt_curr_ytd, 0) - IFNULL(cte3.amt_prec_ytd, 0)) AS amt_curr_qtr,
+    (IFNULL(cte3.amt_prec_ytd, 0) - IFNULL(cte5.amt_prec_2_ytd, 0)) AS amt_prec_qtr,
+    (IFNULL(cte2.amt_prev_ytd, 0) - IFNULL(cte6.amt_prev_prec_ytd, 0)) AS amt_prev_qtr
+FROM cte7
+LEFT JOIN cte1 USING(pg_code)
+LEFT JOIN cte2 USING(pg_code)
+LEFT JOIN cte3 USING(pg_code)
+LEFT JOIN cte4 USING(pg_code)
+LEFT JOIN cte5 USING(pg_code)
+LEFT JOIN cte6 USING(pg_code)
+";
+
+$result = mysqli_query($con, $q) or die(mysqli_error($con));
+$num_fields = mysqli_num_fields($result);
+$fields_array = mysqli_fetch_fields($result);
+$fs_values = array();
+
+while ($row = mysqli_fetch_assoc($result)) {
+    $fs_values[$row['pg_code']] = array(
+        $row['amt_curr_ytd'],
+        $row['amt_prec_ytd'],
+        $row['amt_prev_ytd'],
+        $row['amt_prev_fy'],
+        $row['amt_curr_qtr'],
+        $row['amt_prec_qtr'],
+        $row['amt_prev_qtr']
+    );
+}
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>SEBI P&L</title>
+    <link rel="stylesheet" href="../css/style.css" />
+    <style>
+        th, td {
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h2 align="center">User: <?php echo $_SESSION['username'] . " | Unit: " . $_SESSION['unitname'] . " | Fiscal: " . $_SESSION['fiscal']; ?></h2>
+
+    <div class="form">
+        <p><a href="../circle_index.php">Circle Home</a> | <a href="../home.html">Home</a> | <a href="a16_trade_pay_age.php">Data Entry for Trade payable ageing</a></p>
+        <h2>SEBI P&L</h2>
+
+        <table id="dataTable" border="1" width="100%" style="border-collapse:collapse; border-spacing:15px; border-color:lightgray;">
+            <colgroup>
+                <col style="width: 50px;">
+                <col style="width: 500px;">
+                <col style="width: 70px;">
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
+            </colgroup>
+            <thead>
+                <tr>
+                    <th rowspan="3"><strong>S.No.</strong></th>
+                    <th rowspan="3"><strong>Particulars</strong></th>
+                    <th rowspan="3"><strong>Note Ref</strong></th>
+                    <th colspan="3"><strong>Quarter Ended</strong></th>
+                    <th colspan="2"><strong>Year Till Date</strong></th>
+                    <th><strong>Year Ended</strong></th>
+                </tr>
+                <tr>
+                    <th><strong><?php echo $current_prd_end; ?></strong></th>
+                    <th><strong><?php echo $preceding_prd_end; ?></strong></th>
+                    <th><strong><?php echo $comp_prd_end; ?></strong></th>
+                    <th><strong><?php echo $current_prd_end; ?></strong></th>
+                    <th><strong><?php echo $comp_prd_end; ?></strong></th>
+                    <th><strong><?php echo $prev_fiscal_end; ?></strong></th>
+                </tr>
+                <tr>
+                    <th><strong>(Unaudited)</strong></th>
+                    <th><strong>(Unaudited)</strong></th>
+                    <th><strong>(Unaudited)</strong></th>
+                    <th><strong>(Unaudited)</strong></th>
+                    <th><strong>(Unaudited)</strong></th>
+                    <th><strong>(Audited)</strong></th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Income Section -->
+                <tr>
+                    <td align="center">1</td>
+                    <td align="Left"><strong>Income</strong></td>
+                    <td align="center"></td>
+                    <td align="right"></td>
+                    <td align="right"></td>
+                    <td align="right"></td>
+                    <td align="right"></td>
+                    <td align="right"></td>
+                </tr>
+                <tr>
+                    <td align="center"><a href="fs_pl_note.php?pg_code=PL00340000" onclick="window.open('fs_pl_note.php?pg_code=PL00340000', 'popup', 'width=600,height=400'); return false;">a</a></td>
+                    <td align="Left">Revenue from operations</td>
+                    <td align="center"></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00340000'][4] * -1); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00340000'][5] * -1); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00340000'][6] * -1); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00340000'][0] * -1); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00340000'][2] * -1); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00340000'][3] * -1); ?></td>
+                </tr>
+                <!-- Other income -->
+                <tr>
+                    <td align="center"><a href="fs_pl_note.php?pg_code=PL00350000" target="_blank">b</a></td>
+                    <td align="Left">Other income</td>
+                    <td align="center"></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00350000'][4] * -1); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00350000'][5] * -1); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00350000'][6] * -1); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00350000'][0] * -1); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00350000'][2] * -1); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00350000'][3] * -1); ?></td>
+                </tr>
+                <!-- Total Income -->
+                <tr>
+                    <td align="center">c</td>
+                    <td align="Left"><strong>Total income</strong></td>
+                    <td align="center"></td>
+                    <td align="right"><strong><?php echo inr_format($fs_values['Total_Income'][4] * -1); ?></strong></td>
+                    <td align="right"><strong><?php echo inr_format($fs_values['Total_Income'][5] * -1); ?></strong></td>
+                    <td align="right"><strong><?php echo inr_format($fs_values['Total_Income'][6] * -1); ?></strong></td>
+                    <td align="right"><strong><?php echo inr_format($fs_values['Total_Income'][0] * -1); ?></strong></td>
+                    <td align="right"><strong><?php echo inr_format($fs_values['Total_Income'][2] * -1); ?></strong></td>
+                    <td align="right"><strong><?php echo inr_format($fs_values['Total_Income'][3] * -1); ?></strong></td>
+                </tr>
+                <tr><td colspan="9"></td></tr>
+
+                <!-- Expenses Section -->
+                <tr>
+                    <td align="center">2</td>
+                    <td align="Left"><strong>Expenses</strong></td>
+                    <td align="center"></td>
+                    <td align="right"></td>
+                    <td align="right"></td>
+                    <td align="right"></td>
+                    <td align="right"></td>
+                    <td align="right"></td>
+                </tr>
+                <tr>
+                    <td align="center"><a href="fs_pl_note.php?pg_code=PL00400000" target="_blank">a</a></td>
+                    <td align="Left">License and spectrum fee</td>
+                    <td align="center"></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00400000'][4]); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00400000'][5]); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00400000'][6]); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00400000'][0]); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00400000'][2]); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00400000'][3]); ?></td>
+                </tr>
+                <tr>
+                    <td align="center"><a href="fs_pl_note.php?pg_code=PL00360000" target="_blank">b</a></td>
+                    <td align="Left">Employee benefits expense</td>
+                    <td align="center"></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00360000'][4]); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00360000'][5]); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00360000'][6]); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00360000'][0]); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00360000'][2]); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00360000'][3]); ?></td>
+                </tr>
+                <tr>
+                    <td align="center"><a href="fs_pl_note.php?pg_code=PL00370000" target="_blank">c</a></td>
+                    <td align="Left">Finance costs</td>
+                    <td align="center"></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00370000'][4]); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00370000'][5]); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00370000'][6]); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00370000'][0]); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00370000'][2]); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00370000'][3]); ?></td>
+                </tr>
+                <tr>
+                    <td align="center"><a href="fs_pl_note.php?pg_code=PL00380000" target="_blank">d</a></td>
+                    <td align="Left">Depreciation and amortisation expense</td>
+                    <td align="center"></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00380000'][4]); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00380000'][5]); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00380000'][6]); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00380000'][0]); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00380000'][2]); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00380000'][3]); ?></td>
+                </tr>
+                <tr>
+                    <td align="center"><a href="fs_pl_note.php?pg_code=PL00390000" target="_blank">e</a></td>
+                    <td align="Left">Other expenses</td>
+                    <td align="center"></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00390000'][4]); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00390000'][5]); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00390000'][6]); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00390000'][0]); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00390000'][2]); ?></td>
+                    <td align="right"><?php echo inr_format($fs_values['PL00390000'][3]); ?></td>
+                </tr>
+                <tr>
+                    <td align="center"></td>
+                    <td align="Left"><strong>Total expenses</strong></td>
+                    <td align="center"></td>
+                    <td align="right"><strong><?php echo inr_format($fs_values['Total_expenses'][4]); ?></strong></td>
+                    <td align="right"><strong><?php echo inr_format($fs_values['Total_expenses'][5]); ?></strong></td>
+                    <td align="right"><strong><?php echo inr_format($fs_values['Total_expenses'][6]); ?></strong></td>
+                    <td align="right"><strong><?php echo inr_format($fs_values['Total_expenses'][0]); ?></strong></td>
+                    <td align="right"><strong><?php echo inr_format($fs_values['Total_expenses'][2]); ?></strong></td>
+                    <td align="right"><strong><?php echo inr_format($fs_values['Total_expenses'][3]); ?></strong></td>
+                </tr>
+                <tr><td colspan="9"></td></tr>
+                <tr>
+                    <td align="center">3</td>
+                    <td align="Left"><strong>Loss before exceptional items and tax (1-2)</strong></td>
+                    <td align="center"></td>
+                    <td align="right"><strong><?php echo inr_format($fs_values['PBTEI'][4] * -1); ?></strong></td>
+                    <td align="right"><strong><?php echo inr_format($fs_values['PBTEI'][5] * -1); ?></strong></td>
+                    <td align="right"><strong><?php echo inr_format($fs_values['PBTEI'][6] * -1); ?></strong></td>
+                    <td align="right"><strong><?php echo inr_format($fs_values['PBTEI'][0] * -1); ?></strong></td>
+                    <td align="right"><strong><?php echo inr_format($fs_values['PBTEI'][2] * -1); ?></strong></td>
+                    <td align="right"><strong><?php echo inr_format($fs_values['PBTEI'][3] * -1); ?></strong></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
